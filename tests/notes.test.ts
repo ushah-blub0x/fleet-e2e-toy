@@ -138,3 +138,31 @@ describe("GET /health", () => {
     expect(res.body.status).toBe("ok");
   });
 });
+
+describe("GET /api/notes/count", () => {
+  it("returns 0 on an empty store", async () => {
+    const res = await request(app).get("/api/notes/count");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ count: 0 });
+  });
+
+  it("returns the number of created notes", async () => {
+    for (const title of ["A", "B", "C"]) {
+      await request(app).post("/api/notes").send({ title, content: "x", tags: [] });
+    }
+    const res = await request(app).get("/api/notes/count");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ count: 3 });
+  });
+
+  it("decreases after a delete", async () => {
+    const first = await request(app)
+      .post("/api/notes")
+      .send({ title: "A", content: "x", tags: [] });
+    await request(app).post("/api/notes").send({ title: "B", content: "x", tags: [] });
+    await request(app).delete(`/api/notes/${first.body.id}`);
+    const res = await request(app).get("/api/notes/count");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ count: 1 });
+  });
+});
