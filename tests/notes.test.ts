@@ -138,3 +138,52 @@ describe("GET /health", () => {
     expect(res.body.status).toBe("ok");
   });
 });
+
+describe("GET /api/notes/latest", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const create = async (title: string, at: number): Promise<string> => {
+    jest.setSystemTime(at);
+    const res = await request(app).post("/api/notes").send({ title, content: "c", tags: [] });
+    return res.body.id as string;
+  };
+
+  it("returns 404 with 'No notes' on an empty store", async () => {
+    const res = await request(app).get("/api/notes/latest");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "No notes" });
+  });
+
+  it("returns the last-created note after several creates", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+    await create("One", 1_000_000);
+    await create("Two", 2_000_000);
+    const lastId = await create("Three", 3_000_000);
+
+    const res = await request(app).get("/api/notes/latest");
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(lastId);
+  });
+
+  it("returns the previous note after deleting the newest", async () => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+    await create("One", 1_000_000);
+    const prevId = await create("Two", 2_000_000);
+    const newestId = await create("Three", 3_000_000);
+
+    const del = await request(app).delete(`/api/notes/${newestId}`);
+    expect(del.status).toBe(204);
+
+    const res = await request(app).get("/api/notes/latest");
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(prevId);
+  });
+
+  it("is not captured by the /:id route", async () => {
+    const res = await request(app).get("/api/notes/latest");
+    expect(res.body).toEqual({ error: "No notes" });
+    expect(res.body).not.toEqual({ error: "Note not found" });
+  });
+});
