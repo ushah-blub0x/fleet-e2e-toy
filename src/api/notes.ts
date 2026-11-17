@@ -30,6 +30,17 @@ router.get("/", (req: Request, res: Response) => {
   res.json(notes);
 });
 
+// Get the most recently created note (ties on createdAt broken by insertion order)
+router.get("/latest", (_req: Request, res: Response) => {
+  const notes = noteStore.getAll();
+  if (notes.length === 0) {
+    res.status(404).json({ error: "No notes" });
+    return;
+  }
+  const latest = notes.reduce((best, n) => (n.createdAt >= best.createdAt ? n : best));
+  res.status(200).json(latest);
+});
+
 // Get a single note by ID
 router.get("/:id", (req: Request<{ id: string }>, res: Response) => {
   const note = noteStore.getById(req.params.id);

@@ -35,6 +35,7 @@ npm start       # http://localhost:3000
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/notes` | List all notes (optional: `?tag=`, `?q=`) |
+| GET | `/api/notes/latest` | Get the most recently created note (404 if none) |
 | GET | `/api/notes/:id` | Get a note by ID |
 | POST | `/api/notes` | Create a note |
 | PUT | `/api/notes/:id` | Update a note |
